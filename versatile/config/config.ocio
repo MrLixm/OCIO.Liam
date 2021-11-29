@@ -14,7 +14,6 @@ description: A versatile sRGB based configuration for artists.
 #     example: {tf:linear, pm:sRGB, wp:<primaries>} means the whitepoint is the sRGB whitepoint
 #
 
-search_path: luts
 environment: {}
 # separate colorspace family attributes into tokens or levels for hierarchical menus
 family_separator: /
@@ -25,59 +24,49 @@ roles:
   cie_xyz_d65_interchange: CIE-XYZ-D65
   data: Raw
   default: Raw
-  # config use CIE-XYZ-D65 as reference colorspace
   reference: CIE-XYZ-D65
   scene_linear: sRGB - linear
   color_picking: sRGB
   matte_paint: sRGB
   texture_paint: sRGB - linear
 
+file_rules:
+  - !<Rule> {name: Default, colorspace: Raw}
+
 shared_views:
-  - !<View> {name: Display, view_transform: Reference, display_colorspace: <USE_DISPLAY_NAME>}
+  - !<View> {name: Display, display_colorspace: <USE_DISPLAY_NAME>}
   - !<View> {name: Raw, colorspace: Raw}
-  - !<View> {name: False Color, view_transform: Reference, view_transform: FalseColor}
   - !<View> {name: ACES, view_transform: ACES 1.0, display_colorspace: <USE_DISPLAY_NAME>}
 
 displays:
   sRGB:
-    - !<Views> [Display, Raw, False Color, ACES]
+    - !<Views> [Display, Raw, ACES]
   Apple Display P3:
-    - !<Views> [Display, Raw, False Color, ACES]
+    - !<Views> [Display, Raw, ACES]
   Rec.709:  
-    - !<Views> [Display, Raw, False Color, ACES]
+    - !<Views> [Display, Raw, ACES]
   P3-DCI:
-    - !<Views> [Display, Raw, False Color, ACES]
+    - !<Views> [Display, Raw, ACES]
   P3-DCI-D65:
-    - !<Views> [Display, Raw, False Color, ACES]
+    - !<Views> [Display, Raw, ACES]
 
 
 
 # Allows an application to ask OCIO to instantiate a new display from an ICC monitor profile.
-virtual_display:
-  - !<Views> [Display, Raw, False Color, ACES]
+#virtual_display:
+#  - !<Views> [Display, Raw, ACES]
 
 
 view_transforms:
-
-  - !<ViewTransform>
-    name: Reference
-    descrription: Incoming is CIE-XYZ-D65 colorspace
-
-  - !<ViewTransform>
-    name: FalseColor
-    description: False Color preview to visualize dynamic range.
-    from_scene_reference: !<GroupTransform>
-      children:
-        - !<FileTransform> {src: logScale.spi1d, interpolation: linear}
-        - !<FileTransform> {src: falseColor.spi3d, interpolation: linear}
 
   - !<ViewTransform>
     name: ACES 1.0
     description: |
       ACES Output Transform for SDR displays in a video viewing environment. ACES neutrals are at D65.
     from_scene_reference: !<GroupTransform>
-      - !<ColorSpaceTransform> {src: CIE-XYZ-D65, dst: ACES2065-1}
-      - !<BuiltinTransform> {style: "ACES-OUTPUT - ACES2065-1_to_CIE-XYZ-D65 - SDR-VIDEO_1.0"}
+      children:
+        - !<ColorSpaceTransform> {src: CIE-XYZ-D65, dst: ACES2065-1}
+        - !<BuiltinTransform> {style: "ACES-OUTPUT - ACES2065-1_to_CIE-XYZ-D65 - SDR-VIDEO_1.0"}
 
 
 display_colorspaces:
