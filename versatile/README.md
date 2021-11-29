@@ -1,6 +1,8 @@
 # Versatile OCIO configuration
 
-A versatile (who would have guess) OCIO configuration for indivual artists.
+![OCIO version](https://img.shields.io/badge/OCIO%20version-v2-informational)
+
+A versatile (who would have guessed) OCIO configuration for indivual artists.
 
 - working colorspace is `sRGB - linear`
 
@@ -19,26 +21,11 @@ A versatile (who would have guess) OCIO configuration for indivual artists.
 - Simple display encoding
 
 - ACES 1.0 RRT
-- False Color
 - Raw
 
 # Development
 
-First draft is manually edited. Python build in the work.
+See [dev](./dev) directory.
 
-## Good practices
-
-Good practices followed during the development of the configuration.
-
-### Colorspace Description
-
-All colorspaces (display included) description shoudl be formatted as a dictionnary :
-
-```yaml
-{
-	components: { transfer-function: <value>, primaries: <value>, whitepoint: <value>},
-	description: actual textual description
-}
-```
-
-This makes no doubt of what the source colorspace is.
+Run [create_config.py](./dev/python/create_config.py) to create the config.
+Output can be found in [output](./dev/output)

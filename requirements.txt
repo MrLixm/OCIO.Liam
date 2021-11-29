@@ -1,0 +1,2 @@
+opencolorio==2.1.0
+colour-science==0.3.16
