@@ -1,159 +1,13 @@
 """
 
 """
-import json
 import logging
 
-import colour
 import PyOpenColorIO as ocio
-import numpy
 
-from . import utils
-from . import setup
+from .. import utils
 
-logger = logging.getLogger("mkc.contents")
-
-"""
-We defined "data" classes to hold names used in various parameters.
-This avoid human-mistakes as typos and give auto-completions to 
-see availables options.
-"""
-
-
-class Families:
-    """
-    arbitrary
-    """
-    scene = "Scene"
-    display = "Display"
-
-
-class Categories:
-    """
-    arbitrary
-    """
-    input = "input"
-    workspace = "workspace"
-    output = "output"
-
-
-class Encodings:
-    """
-    standard defined in OCIO doc, can add new ones.
-    """
-    scene_linear = "scene-linear"  # numeric repr proportional to scene luminance.
-    display_linear = "display-linear"  # numeric repr proportional to display luminance.
-    log = "log"  # numeric repr roughly proportional to the logarithm of scene-luminance
-    srd_video = "srd-video"  # numeric repr proportional to sdr video signal.
-    hdr_video = "hdr_video"  # numeric repr proportional to hdr video signal.
-    data = "data"  # A non-color channel. (usually + isdata attribute = true.)
-
-
-class ColorspaceDescription:
-    """
-    Python object to represent the description string used on ocio.ColorSpace.
-    Force the addition of colorspace primary informations such as
-    transfer-function, primaries and whitepoint.
-
-    finished string look sliek this :
-      {
-        components: {tf:linear, pm:CIE-XYZ, wp:D65},
-        description: The reference colorspace, CIE XYZ with D65 adaptive white point
-    }
-    """
-
-    def __init__(
-            self,
-            transfer_function: str,
-            primaries: str,
-            whitepoint: str,
-            details: str
-    ):
-        self.tf = transfer_function
-        self.pm = primaries
-        self.wp = whitepoint
-        self.txt = details
-
-    def __repr__(self) -> dict:
-        return {
-            "components": {"tf": self.tf, "pm": self.pm, "wp": self.wp},
-            "details": self.txt
-        }
-
-    def __str__(self) -> str:
-        return str(
-            json.dumps(self.__repr__(), indent=4)
-        )
-
-
-class Colorspace(ocio.ColorSpace):
-    """
-    SuperClass ocio.ColorSpace to add more utility methods.
-    Represent a colorspace defined based on the SCENE REFERENCE SPACE
-
-    Args:
-        name(str):
-        description(ColorspaceDescription):
-        encoding(str):
-        family(str):
-        categories(list):
-        is_data(bool):
-
-    """
-
-    ref_space = ocio.REFERENCE_SPACE_SCENE
-
-    def __init__(
-            self,
-            name,
-            description,
-            encoding,
-            family,
-            categories,
-            is_data=False,
-    ):
-
-        super(Colorspace, self).__init__(referenceSpace=self.ref_space)
-
-        self.setName(name=name)
-        self.setDescription(str(description))
-        self.setEncoding(encoding)
-        self.setFamily(family)
-        self.setIsData(is_data)
-
-        for category in categories:
-            self.addCategory(category)
-
-        return
-
-    def __str__(self):
-        return self.getName()
-
-    @property
-    def name(self):
-        return self.getName()
-
-
-class ColorspaceDisplay(Colorspace):
-    """
-    Superclass Colorspace which istelf superclass  ocio.ColorSpace.
-    Represent a colorspace defined based on the DISPLAY REFERENCE SPACE
-
-    Args:
-        name(str):
-        description(ColorspaceDescription):
-        encoding(str):
-        family(str):
-        categories(list):
-        is_data(bool):
-
-    """
-
-    ref_space = ocio.REFERENCE_SPACE_DISPLAY
-
-    # need to re-declare __init__ to get the documentation working :/
-    def __init__(self, name, description, encoding, family, categories, is_data=False):
-        super().__init__(name, description, encoding, family, categories, is_data)
+logger = logging.getLogger("mkc.config.recipe")
 
 
 """ ---------------------------------------------------------------------------
@@ -179,7 +33,7 @@ class Versatile:
         Call str() on its instance to get a ready-to-write string.
         """
 
-        self.config = None
+        self.config = None  # type: ocio.Config
         self.colorspaces = list()
         self.displays = list()
         self.views = list()
@@ -411,6 +265,46 @@ class Versatile:
         self.cs_srgb_lin.setTransform(transform, ocio.COLORSPACE_DIR_TO_REFERENCE)
         self.config.addColorSpace(self.cs_srgb_lin)
 
+        self.cs_ap0 = Colorspace(
+            name="ACES2065-1",
+            description=ColorspaceDescription(
+                transfer_function="linear",
+                primaries="ACES2065-1",
+                whitepoint="ACES",
+                details="ACES reference space. Also AP0.",
+            ),
+            encoding=Encodings.scene_linear,
+            family=Families.aces,
+            categories=[Categories.input, Categories.output],
+        )
+        transform = ocio.GroupTransform(
+            [
+                ocio.BuiltinTransform(style="UTILITY - ACES-AP0_to_CIE-XYZ-D65_BFD"),
+            ]
+        )
+        self.cs_ap0.setTransform(transform, ocio.COLORSPACE_DIR_TO_REFERENCE)
+        self.config.addColorSpace(self.cs_ap0)
+
+        self.cs_ap1 = Colorspace(
+            name="ACEScg",
+            description=ColorspaceDescription(
+                transfer_function="linear",
+                primaries="ACEScg",
+                whitepoint="ACES",
+                details="ACES working space. Also AP1.",
+            ),
+            encoding=Encodings.scene_linear,
+            family=Families.aces,
+            categories=[Categories.input, Categories.output, Categories.workspace],
+        )
+        transform = ocio.GroupTransform(
+            [
+                ocio.BuiltinTransform(style="UTILITY - ACES-AP1_to_CIE-XYZ-D65_BFD"),
+            ]
+        )
+        self.cs_ap1.setTransform(transform, ocio.COLORSPACE_DIR_TO_REFERENCE)
+        self.config.addColorSpace(self.cs_ap1)
+
         return
 
     @utils.check_config_init
@@ -420,13 +314,13 @@ class Versatile:
         # TODO finish once all colorspaces defined
         self.config.setRole(ocio.ROLE_INTERCHANGE_SCENE, self.cs_ref.name)
         self.config.setRole(ocio.ROLE_INTERCHANGE_DISPLAY, self.cs_ref.name)
-        self.config.setRole(ocio.ROLE_SCENE_LINEAR, self.cs_ref.name)
+        self.config.setRole(ocio.ROLE_SCENE_LINEAR, self.cs_srgb_lin.name)
         self.config.setRole(ocio.ROLE_REFERENCE, self.cs_ref.name)
         self.config.setRole(ocio.ROLE_DATA, self.cs_raw.name)
         self.config.setRole(ocio.ROLE_DEFAULT, self.cs_raw.name)
         self.config.setRole(ocio.ROLE_COLOR_PICKING, self.cs_ref.name)
-        self.config.setRole(ocio.ROLE_MATTE_PAINT, self.cs_ref.name)
-        self.config.setRole(ocio.ROLE_TEXTURE_PAINT, self.cs_ref.name)
+        self.config.setRole(ocio.ROLE_MATTE_PAINT, self.cs_srgb.name)
+        self.config.setRole(ocio.ROLE_TEXTURE_PAINT, self.cs_srgb_lin.name)
 
         return
 
@@ -457,3 +351,12 @@ class Versatile:
 
         return
 
+    @utils.check_config_init
+    def add_display(self, name,):
+        self.config.addDisplayView(
+            display=str,
+            view=str,
+            colorSpaceName=str,
+            look=""
+        )
+        return

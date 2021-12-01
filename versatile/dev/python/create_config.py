@@ -13,4 +13,4 @@ import makeconfig
 
 # os.environ["MKC_LOG_LVL"] = "INFO"
 
-makeconfig.build()
+makeconfig.cook()

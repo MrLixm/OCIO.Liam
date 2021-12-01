@@ -5,17 +5,17 @@ import logging
 
 import PyOpenColorIO as ocio
 
-from . import config
+from . import recipes
 
-logger = logging.getLogger("mkc.build")
+logger = logging.getLogger("mkc.config.cooker")
 
 
-def build():
+def cook():
 
     logger.info("[build] Started")
     logger.info(f"Using OCIO version : {ocio.__version__}")
 
-    versatile = config.Versatile()
+    versatile = recipes.Versatile()
     versatile.build()
     # versatile.validate()
 
