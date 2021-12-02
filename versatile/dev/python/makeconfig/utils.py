@@ -86,37 +86,93 @@ def matrix_format_ocio(matrix):
     return matrix_format_oneline(matrix_3x3_to_4x4(matrix))
 
 
-def matrix_transform_ocio(source, target):
+def matrix_whitepoint_transform(source_whitepoint,
+                                target_whitepoint,
+                                transform="Bradford"):
+    """ Return the matrix to perform a chromatic adaptation with the given
+    parameters.
+
+    Args:
+        source_whitepoint(numpy.ndarray): source whitepoint name as xy coordinates
+        target_whitepoint(numpy.ndarray): target whitepoint name as xy coordinates
+        transform(str): method to use.
+
+    Returns:
+        numpy.ndarray: chromatic adaptation matrix from test viewing conditions
+         to reference viewing conditions. A 3x3 matrix.
+    """
+
+    matrix = colour.adaptation.matrix_chromatic_adaptation_VonKries(
+        colour.xy_to_XYZ(source_whitepoint),
+        colour.xy_to_XYZ(target_whitepoint),
+        transform=transform
+    )
+
+    return matrix
+
+
+def matrix_colorspace_transform(source,
+                                target,
+                                source_whitepoint=None,
+                                target_whitepoint=None):
     """ By given a source and target colorspace, return the corresponding
      colorspace conversion matrix.
 
      You can use "XYZ" as a source or target.
+     In that case it is recommended to pass a whitepoint as source or target
+     (depnds what XYZ is) to perform chromatic adaptation.
 
     Args:
         source(str): source colorspace, use "XYZ" for CIE-XYZ.
         target(str): target colorspace, use "XYZ" for CIE-XYZ.
+        source_whitepoint(str): whitepoint name for source,
+        target_whitepoint(str): whitepoint name for target,
 
     Returns:
-        list of float: 4x4 matrix in a single line list.
+        numpy.ndarray: 3x3 matrix
     """
 
-    m1 = colour.chromatically_adapted_primaries(
-        colour.RGB_COLOURSPACES["DCI-P3"].primaries,
-        colour.RGB_COLOURSPACES["DCI-P3"].whitepoint,
-        colour.CCS_ILLUMINANTS['CIE 1931 2 Degree Standard Observer']['D65'],
-        "Bradford"
-    )
+    illum_1931 = colour.CCS_ILLUMINANTS["CIE 1931 2 Degree Standard Observer"]
+
+    perform_cat = True if source_whitepoint or target_whitepoint else False
 
     if target == "XYZ":
-        matrix = colour.RGB_COLOURSPACES[source]  # type: colour.RGB_Colourspace
-        matrix = matrix.matrix_RGB_to_XYZ.round(setup.NUM_ROUND)  # type: numpy.ndarray
-    elif source == "XYZ":
-        matrix = colour.RGB_COLOURSPACES[target]  # type: colour.RGB_Colourspace
-        matrix = matrix.matrix_XYZ_to_RGB.round(setup.NUM_ROUND)  # type: numpy.ndarray
-    else:
-        cs_in = colour.RGB_COLOURSPACES[source]
-        cs_out = colour.RGB_COLOURSPACES[target]
-        matrix = colour.matrix_RGB_to_RGB(cs_in, cs_out, setup.CAT)
 
-    print(m1)
-    return matrix_format_ocio(matrix)
+        source_cs = colour.RGB_COLOURSPACES[source]  # type: colour.RGB_Colourspace
+        matrix = source_cs.matrix_RGB_to_XYZ.round(setup.NUM_ROUND)  # type: numpy.ndarray
+
+        if perform_cat and not target_whitepoint:
+            raise ValueError("Please give a target_whitepoint")
+
+    elif source == "XYZ":
+
+        target_cs = colour.RGB_COLOURSPACES[target]  # type: colour.RGB_Colourspace
+        matrix = target_cs.matrix_XYZ_to_RGB.round(setup.NUM_ROUND)  # type: numpy.ndarray
+
+        if perform_cat and not source_whitepoint:
+            raise ValueError("Please give a source_whitepoint")
+
+    else:
+
+        source_cs = colour.RGB_COLOURSPACES[source]
+        target_cs = colour.RGB_COLOURSPACES[target]
+        # if perform_cat, we will perform it after, so disable it for this op
+        _cat = None if perform_cat else setup.CAT
+        matrix = colour.matrix_RGB_to_RGB(source_cs, target_cs, _cat)
+
+    if perform_cat:
+
+        # use the source colorspace whitepoint if not one specified
+        source_whitepoint = source_cs.whitepoint_name if not source_whitepoint else source_whitepoint
+        # use the target colorspace whitepoint if not one specified
+        target_whitepoint = target_cs.whitepoint_name if not target_whitepoint else target_whitepoint
+
+        matrix_cat = matrix_whitepoint_transform(
+            source_whitepoint=illum_1931[source_whitepoint],
+            target_whitepoint=illum_1931[target_whitepoint],
+            transform=setup.CAT
+        )
+
+        matrix = numpy.dot(matrix_cat, matrix)
+
+    return matrix
