@@ -5,6 +5,7 @@ import logging
 
 import PyOpenColorIO as ocio
 
+from .ingredients import *
 from .. import utils
 
 logger = logging.getLogger("mkc.config.recipe")
@@ -25,12 +26,12 @@ class Versatile:
         """
         Python object representing an ocio config.
 
-        Call build() to construct the config. If not called the config
+        Call cook() to build the config. If not called the config
         doesn't exists.
 
         Call validate() to check if the config is malformed.
 
-        Call str() on its instance to get a ready-to-write string.
+        Call str() on this instance to get a ready-to-write string.
         """
 
         self.config = None  # type: ocio.Config
@@ -42,23 +43,69 @@ class Versatile:
 
     def __str__(self):
         return self.config.serialize()
+
+    def bake(self):
+        """
+        Bake the various attributes holded by the class instance to the actual
+        config (self.config)
+        """
+
+        for colorspace in self.colorspaces:
+            self.config.addColorSpace(colorspace)
+
+        for display in self.displays:
+            display.validate()
+
+            for view in display.views:
+
+                if view.is_shared_view:
+                    # this mean we will add teh same view multiple times but
+                    # not an issue as it overwrite the previous one.
+                    self.config.addSharedView(
+                        view=view.name,
+                        viewTransformName=str(view.view_transform),
+                        colorSpaceName=str(view.colorspace),
+                        looks=str(view.looks),
+                        ruleName=str(view.rule_name),
+                        description=str(view.description)
+                    )
+                    self.config.addDisplaySharedView(
+                        display.name,
+                        view.name
+                    )
+                else:
+                    self.config.addDisplayView(
+                        display.name,
+                        view=view.name,
+                        viewTransform=str(view.view_transform),
+                        displayColorSpaceName=str(view.colorspace),
+                        looks=str(view.looks),
+                        ruleName=str(view.rule_name),
+                        description=str(view.description)
+                    )
+
+                continue
+
+            continue
+
+        return
     
-    def build(self):
+    def cook(self):
         """
         Create a new config and build its content.
         """
 
         self.config = ocio.Config()
 
-        self.build_root()
-        self.build_colorspaces()
-        self.build_display()
-        self.build_roles()
+        self.cook_root()
+        self.cook_colorspaces()
+        self.cook_display()
+        self.cook_roles()
         
         return
 
     @utils.check_config_init
-    def build_root(self):
+    def cook_root(self):
         """
         Build options related to the config itself.
         """
@@ -72,17 +119,23 @@ class Versatile:
         return
 
     @utils.check_config_init
-    def build_colorspaces(self):
+    def cook_colorspaces(self):
         """
         """
 
-        """--------------------------------------------------------------------
+        """====================================================================
+        
         Display Colorspaces
         
         use ColorspaceDisplay() instead of Colorspace()
+        
         """
 
-        # sRGB
+        """____________________________________________________________________
+
+            sRGB
+
+        """
         self.cs_srgb = ColorspaceDisplay(
             name="sRGB",
             description=ColorspaceDescription(
@@ -103,9 +156,13 @@ class Versatile:
             ]
         )
         self.cs_srgb.setTransform(transform, ocio.COLORSPACE_DIR_FROM_REFERENCE)
-        self.config.addColorSpace(self.cs_srgb)
+        self.add(self.cs_srgb)
 
-        # Rec.709
+        """____________________________________________________________________
+
+            Rec.709
+
+        """
         self.cs_bt709 = ColorspaceDisplay(
             name="Rec.709",
             description=ColorspaceDescription(
@@ -126,9 +183,13 @@ class Versatile:
             ]
         )
         self.cs_bt709.setTransform(transform, ocio.COLORSPACE_DIR_FROM_REFERENCE)
-        self.config.addColorSpace(self.cs_bt709)
+        self.add(self.cs_bt709)
 
-        # Apple Display P3
+        """____________________________________________________________________
+
+            Apple Display P3
+
+        """
         self.cs_p3_d = ColorspaceDisplay(
             name="Apple Display P3",
             description=ColorspaceDescription(
@@ -141,16 +202,17 @@ class Versatile:
             family=Families.display,
             categories=[Categories.output],
         )
+        _matrix = utils.matrix_colorspace_transform(
+            source="XYZ",
+            target="Display P3",
+            source_whitepoint="D65"
+        )
+        _matrix = utils.matrix_format_ocio(_matrix)
 
         transform = ocio.GroupTransform(
             [
-                # DCI-P3 to CIE-XYZ matrix
-                ocio.MatrixTransform(
-                    utils.matrix_transform_ocio(
-                        source="XYZ",
-                        target="Display P3"
-                    )
-                ),
+                # DCisplay P3 to CIE-XYZ matrix
+                ocio.MatrixTransform(_matrix),
                 # sRGB EOTF encoding
                 ocio.ExponentWithLinearTransform(
                     [2.4, 2.4, 2.4, 1.0],
@@ -163,9 +225,13 @@ class Versatile:
             ]
         )
         self.cs_p3_d.setTransform(transform, ocio.COLORSPACE_DIR_FROM_REFERENCE)
-        self.config.addColorSpace(self.cs_p3_d)
+        self.add(self.cs_p3_d)
 
-        # P3-DCI
+        """____________________________________________________________________
+
+            P3-DCI
+
+        """
         self.cs_p3_dci = ColorspaceDisplay(
             name="P3-DCI",
             description=ColorspaceDescription(
@@ -186,9 +252,13 @@ class Versatile:
             ]
         )
         self.cs_p3_dci.setTransform(transform, ocio.COLORSPACE_DIR_FROM_REFERENCE)
-        self.config.addColorSpace(self.cs_p3_dci)
+        self.add(self.cs_p3_dci)
 
-        # P3-DCI-D65
+        """____________________________________________________________________
+
+            P3-DCI-D65
+
+        """
         self.cs_p3_dci_d65 = ColorspaceDisplay(
             name="P3-DCI-D65",
             description=ColorspaceDescription(
@@ -209,12 +279,19 @@ class Versatile:
             ]
         )
         self.cs_p3_dci_d65.setTransform(transform, ocio.COLORSPACE_DIR_FROM_REFERENCE)
-        self.config.addColorSpace(self.cs_p3_dci_d65)
+        self.add(self.cs_p3_dci_d65)
 
-        """--------------------------------------------------------------------
+        """====================================================================
+        
         Colorspaces
+        
         """
 
+        """____________________________________________________________________
+
+            CIE-XYZ-D65
+
+        """
         self.cs_ref = Colorspace(
             name="CIE-XYZ-D65",
             description=ColorspaceDescription(
@@ -227,8 +304,13 @@ class Versatile:
             family=Families.scene,
             categories=[Categories.input, Categories.workspace]
         )
-        self.config.addColorSpace(self.cs_ref)
+        self.add(self.cs_ref)
 
+        """____________________________________________________________________
+
+            Raw
+
+        """
         self.cs_raw = Colorspace(
             name="Raw",
             description=ColorspaceDescription(
@@ -242,8 +324,13 @@ class Versatile:
             categories=[Categories.input, Categories.output],
             is_data=True
         )
-        self.config.addColorSpace(self.cs_raw)
+        self.add(self.cs_raw)
 
+        """____________________________________________________________________
+
+            sRGB - linear
+
+        """
         self.cs_srgb_lin = Colorspace(
             name="sRGB - linear",
             description=ColorspaceDescription(
@@ -256,15 +343,21 @@ class Versatile:
             family=Families.scene,
             categories=[Categories.input, Categories.output, Categories.workspace],
         )
-        transform = ocio.MatrixTransform(
-            utils.matrix_transform_ocio(
+        _matrix = utils.matrix_colorspace_transform(
                 source="sRGB",
-                target="XYZ"
-            )
+                target="XYZ",
+                target_whitepoint="D65"
         )
+        _matrix = utils.matrix_format_ocio(_matrix)
+        transform = ocio.MatrixTransform(_matrix)
         self.cs_srgb_lin.setTransform(transform, ocio.COLORSPACE_DIR_TO_REFERENCE)
-        self.config.addColorSpace(self.cs_srgb_lin)
+        self.add(self.cs_srgb_lin)
 
+        """____________________________________________________________________
+        
+            ACES2065-1
+            
+        """
         self.cs_ap0 = Colorspace(
             name="ACES2065-1",
             description=ColorspaceDescription(
@@ -283,8 +376,13 @@ class Versatile:
             ]
         )
         self.cs_ap0.setTransform(transform, ocio.COLORSPACE_DIR_TO_REFERENCE)
-        self.config.addColorSpace(self.cs_ap0)
+        self.add(self.cs_ap0)
 
+        """____________________________________________________________________
+        
+            ACEScg
+
+        """
         self.cs_ap1 = Colorspace(
             name="ACEScg",
             description=ColorspaceDescription(
@@ -303,12 +401,12 @@ class Versatile:
             ]
         )
         self.cs_ap1.setTransform(transform, ocio.COLORSPACE_DIR_TO_REFERENCE)
-        self.config.addColorSpace(self.cs_ap1)
+        self.add(self.cs_ap1)
 
         return
 
     @utils.check_config_init
-    def build_roles(self):
+    def cook_roles(self):
         """
         """
         # TODO finish once all colorspaces defined
@@ -325,9 +423,30 @@ class Versatile:
         return
 
     @utils.check_config_init
-    def build_display(self):
+    def cook_display(self):
 
-        pass
+        self.view_raw = View("Raw")
+        self.view_disp = View("Display")
+        self.view_test = View("Test")
+
+        self.dp_srgb = Display(
+            "sRGB",
+            [self.view_raw, self.view_disp]
+        )
+        self.dp_p3_d = Display(
+            "Apple Display P3",
+            [self.view_raw, self.view_disp]
+        )
+        self.dp_bt709 = Display(
+            "Rec.709",
+            [self.view_raw, self.view_disp, self.view_test]
+        )
+
+        self.add(self.dp_srgb)
+        self.add(self.dp_bt709)
+        self.add(self.dp_p3_d)
+
+        return
 
     @utils.check_config_init
     def validate(self):
@@ -337,7 +456,27 @@ class Versatile:
         self.config.validate()
         return
 
-    @utils.check_config_init
+    def add(self, component):
+        """
+        Add an object to the config and let it guess how it should add it
+
+        Args:
+            component(any):
+        """
+
+        if isinstance(component, Display):
+            self.add_display(display=component)
+        elif isinstance(component, (Colorspace, ColorspaceDisplay)):
+            self.add_colorspace(colorspace=component)
+        else:
+            raise TypeError(
+                "<component> is not from a supported type."
+                "Excpected Union[Display, Colorspace, ColorspaceDisplay], got "
+                f"<{type(component)}>"
+            )
+
+        return
+
     def add_colorspace(self, colorspace):
         """
         overload config.addColorSpace() to perform additional operations.
@@ -346,17 +485,18 @@ class Versatile:
             colorspace(Colorspace):
 
         """
-        self.config.addColorSpace(colorspace)
         self.colorspaces.append(colorspace)
 
         return
 
-    @utils.check_config_init
-    def add_display(self, name,):
-        self.config.addDisplayView(
-            display=str,
-            view=str,
-            colorSpaceName=str,
-            look=""
-        )
+    def add_display(self, display):
+        """
+        Add display and shared_views to the config.
+
+        Args:
+            display(Display):
+
+        """
+        self.displays.append(display)
+
         return
