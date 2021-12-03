@@ -14,7 +14,9 @@ __all__ = [
     "Encodings",
     "ColorspaceDescription",
     "Colorspace",
-    "ColorspaceDisplay"
+    "ColorspaceDisplay",
+    "Display",
+    "View"
 ]
 
 """
@@ -163,18 +165,123 @@ class ColorspaceDisplay(Colorspace):
 
 class Display:
 
-    def __init__(self, name, views):
+    def __init__(self, name, views=None):
+        """
 
-        self.name = name
+        Args:
+            name(str):
+            views(list or tuple or set or View): list or tuple of View instances.
+        """
+
+        self.views = list()
+        self.name = str(name)
+
+        if isinstance(views, (list, tuple, set)):
+            for view in views:
+                self.add_view(view=view)
+        elif isinstance(views, View):
+            self.add_view(view=views)
+        else:
+            raise TypeError(
+                f"Argument <views> is in an unsuported type."
+                f"Excpected Union[list,tuple,set,View] got <{type(views)}>."
+            )
+
+        return
+
+    def add_view(self, view):
+        """ Add a View to this Display.
+
+        Args:
+            view(View):
+        """
+        if view not in self.views:
+            self.views.append(view)
+            view.add_parent(parent=self)
+        return
+
+    def validate(self):
+        """
+        Raise an error if this is not a pontential valid display.
+        """
+
+        for view in self.views:
+            view.validate()
+
+        return
 
 
 class View:
 
-    def __init__(self, name, description=""):
+    def __init__(
+            self,
+            name,
+            colorspace=None,
+            view_transform=None,
+            display_colorspace=None,
+            looks=None,
+            description=None,
+            parents=None,
+            rule_name=None
+    ):
+        """
+
+        Args:
+            name:
+            colorspace:
+            view_transform:
+            display_colorspace:
+            looks:
+            description(str):
+            parents(list or tuple or set or Display):
+            rule_name(str)
+        """
+        self.parents = list()
 
         self.name = name
-        self.description = description if description else None
+        self.description = description
         self.colorspace = colorspace
         self.view_transform = view_transform
         self.display_colorspace = display_colorspace
         self.looks = looks
+        self.rule_name = rule_name
+
+        if isinstance(parents, (list, tuple, set)):
+            for parent in parents:
+                self.add_parent(parent=parent)
+        elif isinstance(parents, Display):
+            self.add_parent(parent=parents)
+        else:
+            raise TypeError(
+                f"Argument <parents> is in an unsuported type."
+                f"Excpected Union[list,tuple,set,Display] got <{type(parents)}>."
+            )
+
+        return
+
+    @property
+    def is_shared_view(self):
+        """
+        Returns:
+            bool: Is the view used by multiple Display ?
+        """
+
+        return len(self.parents) > 1
+
+    def add_parent(self, parent):
+        """
+        Add a Display where this View is used.
+
+        Args:
+            parent(Display):
+        """
+        if parent not in self.parents:
+            self.parents.append(parent)
+            parent.add_view(view=self)
+        return
+
+    def validate(self):
+        """
+        Raise an error if this is not a pontential valid view.
+        """
+        return
