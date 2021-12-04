@@ -2,13 +2,16 @@
 
 ![OCIO version](https://img.shields.io/badge/OCIO%20version-v2-informational)
 
-A versatile (who would have guessed) OCIO configuration for indivual artists.
+A versatile (who would have guessed), lightweight (no LUTs)
+OCIO configuration for individual artists.
 
 - working colorspace is `sRGB - linear`
 
 - reference colorspace is `CIE-XYZ-D65`
 
-## Displays
+## Specifications
+
+### Displays
 
 - sRGB
 - Apple Display P3
@@ -19,7 +22,6 @@ A versatile (who would have guessed) OCIO configuration for indivual artists.
 ### Views
 
 - Simple display encoding
-
 - ACES 1.0 RRT
 - Raw
 
@@ -28,4 +30,12 @@ A versatile (who would have guessed) OCIO configuration for indivual artists.
 See [dev](./dev) directory.
 
 Run [create_config.py](./dev/python/create_config.py) to create the config.
-Output can be found in [output](./dev/output)
+
+The config is defined in [Versatile.py](./dev/python/Versatile.py)
+
+## Environment
+
+Developed on Python 3.6.8.
+
+See [requirements.txt](../requirements.txt) for venv packages.
+
