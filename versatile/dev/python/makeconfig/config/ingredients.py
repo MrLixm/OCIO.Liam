@@ -245,7 +245,10 @@ class View:
 
         Args:
             name(str):
-            colorspace(Colorspace):
+            colorspace(Colorspace or str):
+                colorspace or colorspace name.
+                you can use the special token <USE_DISPLAY_NAME>
+                 (see OCIO doc)
             view_transform(ViewTransform or None):
             looks(List[Tuple[str,Look]] or None):
                 list of tuple, each tuple must start with look direction(+/-)
@@ -334,6 +337,14 @@ class View:
                 f"View <{self.name}> doesn't have any parent."
                 f"You need to add it to a Display."
             )
+
+        if self.colorspace == ocio.OCIO_VIEW_USE_DISPLAY_NAME:
+            if not self.view_transform:
+                raise ValueError(
+                    f"View <{self.name}> doesn't have a view_transform "
+                    f"defined. You need one as the colorspace used is"
+                    f"{ocio.OCIO_VIEW_USE_DISPLAY_NAME}."
+                )
 
         return
 
