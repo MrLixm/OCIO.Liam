@@ -164,6 +164,7 @@ class BaseConfig(ABC):
         # ! Order is important !
         self.cook_root()
         self.cook_colorspaces()
+        self.cook_colorspaces_display()
         self.cook_looks()
         self.cook_viewtransforms()
         self.cook_display()
@@ -215,8 +216,17 @@ class BaseConfig(ABC):
     @utils.check_config_init
     def cook_colorspaces(self):
         """
-        Build colorspaces, display colrospaces.
-        They should be cook first to be referenced is other components.
+        Build display colorspaces.
+        They should be cook first to be referenced in other components.
+        """
+        pass
+
+    @abstractmethod
+    @utils.check_config_init
+    def cook_colorspaces_display(self):
+        """
+        Build display colorspaces.
+        They should be cooked second to be referenced in other components.
         """
         pass
 
