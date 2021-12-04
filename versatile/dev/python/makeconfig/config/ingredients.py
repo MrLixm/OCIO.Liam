@@ -3,6 +3,7 @@
 """
 import json
 import logging
+from abc import ABC, abstractproperty
 from pathlib import Path
 from typing import List, Tuple
 
@@ -20,7 +21,8 @@ __all__ = [
     "Display",
     "View",
     "Look",
-    "ViewTransform"
+    "ViewTransform",
+    "NamedTransform"
 ]
 
 """----------------------------------------------------------------------------
@@ -55,8 +57,8 @@ class Encodings:
     scene_linear = "scene-linear"  # numeric repr proportional to scene luminance.
     display_linear = "display-linear"  # numeric repr proportional to display luminance.
     log = "log"  # numeric repr roughly proportional to the logarithm of scene-luminance
-    srd_video = "srd-video"  # numeric repr proportional to sdr video signal.
-    hdr_video = "hdr_video"  # numeric repr proportional to hdr video signal.
+    sdr_video = "sdr-video"  # numeric repr proportional to sdr video signal.
+    hdr_video = "hdr-video"  # numeric repr proportional to hdr video signal.
     data = "data"  # A non-color channel. (usually + isdata attribute = true.)
 
 
@@ -64,6 +66,22 @@ class Encodings:
 These classes represent OCIO config components. SOme of them subclass the one
 define in the OCIO python package while other are created from scratch.
 """
+
+
+class BaseOCIOComponent(object):
+    """
+    Abstract class that all OCIO components should implement.
+    """
+
+    def __str__(self) -> str:
+        """
+        All BaseComponents hould return their name when converted to string.
+        """
+        return self.name
+
+    @abstractproperty
+    def name(self) -> str:
+        pass
 
 
 class ColorspaceDescription:
@@ -103,7 +121,7 @@ class ColorspaceDescription:
         )
 
 
-class Colorspace(ocio.ColorSpace):
+class Colorspace(BaseOCIOComponent, ocio.ColorSpace):
     """
     SuperClass ocio.ColorSpace to add more utility methods.
     Represent a colorspace defined based on the SCENE REFERENCE SPACE
@@ -143,9 +161,6 @@ class Colorspace(ocio.ColorSpace):
 
         return
 
-    def __str__(self):
-        return self.getName()
-
     @property
     def name(self):
         return self.getName()
@@ -173,12 +188,13 @@ class ColorspaceDisplay(Colorspace):
         super().__init__(name, description, encoding, family, categories, is_data)
 
 
-class Look(ocio.Look):
-    def __str__(self):
+class Look(BaseOCIOComponent, ocio.Look):
+    @property
+    def name(self):
         return self.getName()
 
 
-class Display:
+class Display(BaseOCIOComponent):
 
     def __init__(self, name, views=None):
         """
@@ -187,7 +203,7 @@ class Display:
             name(str):
             views(list or tuple or set or View): list or tuple of View instances.
         """
-
+        self._name = str()
         self.views = list()
         self.name = str(name)
 
@@ -204,9 +220,6 @@ class Display:
 
         return
 
-    def __str__(self):
-        return self.name
-
     def add_view(self, view):
         """ Add a View to this Display.
 
@@ -217,6 +230,14 @@ class Display:
             self.views.append(view)
             view.add_parent(parent=self)
         return
+
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, name_value):
+        self._name = name_value
 
     def validate(self):
         """
@@ -229,7 +250,7 @@ class Display:
         return
 
 
-class View:
+class View(BaseOCIOComponent):
 
     def __init__(
             self,
@@ -260,6 +281,7 @@ class View:
             parents(list or tuple or set or Display or None):
             rule_name(str or None)
         """
+        self._name = str()
         self.parents = list()
         self.looks = str()
 
@@ -302,6 +324,14 @@ class View:
             bool: Is the view used by multiple Display ?
         """
         return len(self.parents) > 1
+
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, name_value):
+        self._name = name_value
 
     def add_parent(self, parent):
         """
@@ -349,8 +379,55 @@ class View:
         return
 
 
-class ViewTransform(ocio.ViewTransform):
-    def __str__(self):
+class ViewTransform(BaseOCIOComponent, ocio.ViewTransform):
+    @property
+    def name(self):
+        return self.getName()
+
+
+class NamedTransform(BaseOCIOComponent, ocio.NamedTransform):
+    def __init__(
+            self,
+            name,
+            aliases=None,
+            family=None,
+            description=None,
+            categories=None,
+            forward_transform=None,
+            inverse_transform=None,
+            encoding=None
+    ):
+        """
+        A NamedTransform provides a way for config authors to include a set of
+        color transforms that are independent of the color space being processed.
+        For example a “utility curve” transform where there is no need to
+        convert to or from a reference space.
+
+        Args:
+            name(str):
+            aliases(list of str):
+            family(str):
+            description(str):
+            categories(list of str):
+            forward_transform(ocio.Transform):
+            inverse_transform(ocio.Transform):
+            encoding(str):
+        """
+
+        super().__init__(
+            name,
+            aliases if aliases else list(),
+            family,
+            description,
+            forward_transform,
+            inverse_transform,
+            categories if categories else list(),
+        )
+        self.setEncoding(encodig=encoding)
+        return
+
+    @property
+    def name(self):
         return self.getName()
 
 

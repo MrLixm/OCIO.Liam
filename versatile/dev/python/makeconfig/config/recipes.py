@@ -34,6 +34,7 @@ class BaseConfig(ABC):
         self.displays = list()
         self.looks = list()
         self.viewtransforms = list()
+        self.namedtransforms = list()
         self.disk_dependencies = list()
 
         # start building the config
@@ -78,6 +79,11 @@ class BaseConfig(ABC):
             self.viewtransforms.append(component)
             logger.debug(
                 f"[{self.__class__.__name__}][add] added ViewTransform <{component}>"
+            )
+        elif isinstance(component, NamedTransform):
+            self.namedtransforms.append(component)
+            logger.debug(
+                f"[{self.__class__.__name__}][add] added NamedTransform <{component}>"
             )
         else:
             raise TypeError(
@@ -147,6 +153,9 @@ class BaseConfig(ABC):
         for viewtransform in self.viewtransforms:
             self.config.addViewTransform(viewtransform)
 
+        for namedtransform in self.namedtransforms:
+            self.config.addNamedTransform(namedtransform)
+
         logger.debug(
             f"[{self.__class__.__name__}][bake] Finished"
         )
@@ -164,11 +173,13 @@ class BaseConfig(ABC):
         # ! Order is important !
         self.cook_root()
         self.cook_colorspaces()
+        self.cook_named_transform()
         self.cook_colorspaces_display()
         self.cook_looks()
         self.cook_viewtransforms()
         self.cook_display()
         self.cook_roles()
+        self.cook_misc()
 
         return
 
@@ -223,6 +234,16 @@ class BaseConfig(ABC):
 
     @abstractmethod
     @utils.check_config_init
+    def cook_named_transform(self):
+        """
+        Build NamedTransforms.
+        Include a set of color transforms that are independent of the
+        color space being processed. Example: an utility curve.
+        """
+        pass
+
+    @abstractmethod
+    @utils.check_config_init
     def cook_colorspaces_display(self):
         """
         Build display colorspaces.
@@ -265,3 +286,11 @@ class BaseConfig(ABC):
         """
         pass
 
+    @abstractmethod
+    @utils.check_config_init
+    def cook_misc(self):
+        """
+        Build anything else. Built last so you can use anything.
+        FilesRules are an example.
+        """
+        pass
