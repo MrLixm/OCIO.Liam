@@ -7,4 +7,4 @@ from .launcher import setup_logging
 setup_logging()
 
 from . import config
-from .config.cooker import cook
+from .config.recipes import BaseConfig
