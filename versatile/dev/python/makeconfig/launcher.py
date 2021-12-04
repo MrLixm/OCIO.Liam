@@ -5,6 +5,8 @@ import logging
 import logging.config
 import os
 
+import PyOpenColorIO as ocio
+
 PCKG_ABBR = "mkc"  # package abbreviation
 
 logger = logging.getLogger(f"{PCKG_ABBR}.launcher")
@@ -61,11 +63,18 @@ PUBLIC
 """
 
 
-def setup_logging():
-    """ Start the logging system
+def launch():
 
-    Returns:
-        None
+    setup_logging()
+
+    logger.info(f"[launch] Using OCIO version : {ocio.__version__}")
+
+    return
+
+
+def setup_logging():
+    """
+    Start the logging system
     """
 
     _configure_logging()
