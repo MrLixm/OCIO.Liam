@@ -1,212 +1,279 @@
 ocio_profile_version: 2
 
+environment:
+  {}
+search_path: ""
+strictparsing: true
+luma: [0.2126, 0.7152, 0.0722]
 name: Versatile
 description: A versatile sRGB based configuration for artists.
 
-# COLORSPACE DOCUMENTATION
-#   DESCRIPTIONS
-#     every colorspace should be described following the standard format :
-#
-#     {transfer-function:<value>, primaries:<value>, whitepoint:<value>}
-#
-#     each key can be abreviated to 2 characters as such : {tf:<>, pm:<>, wp:<>}
-#     it is possible in a value to refer to the value used in an other key using the <key-name> token
-#     example: {tf:linear, pm:sRGB, wp:<primaries>} means the whitepoint is the sRGB whitepoint
-#
-
-environment: {}
-# separate colorspace family attributes into tokens or levels for hierarchical menus
-family_separator: /
-strictparsing: true
-
 roles:
-  aces_interchange: ACES2065-1
+  aces_interchange: CIE-XYZ-D65
   cie_xyz_d65_interchange: CIE-XYZ-D65
+  color_picking: sRGB
   data: Raw
   default: Raw
+  matte_paint: sRGB
   reference: CIE-XYZ-D65
   scene_linear: sRGB - linear
-  color_picking: sRGB
-  matte_paint: sRGB
   texture_paint: sRGB - linear
 
 file_rules:
-  - !<Rule> {name: Default, colorspace: Raw}
+  - !<Rule> {name: Default, colorspace: default}
 
 shared_views:
-  - !<View> {name: Display, display_colorspace: <USE_DISPLAY_NAME>}
-  - !<View> {name: Raw, colorspace: Raw}
-  - !<View> {name: ACES, view_transform: ACES 1.0, display_colorspace: <USE_DISPLAY_NAME>}
+  - !<View> {name: Raw, colorspace: Raw, description: Send data directly to the display without encoding.}
+  - !<View> {name: Display, view_transform: Passthrough, display_colorspace: <USE_DISPLAY_NAME>, description: simple display-encoding defined by the colorspace's transfer-function}
+  - !<View> {name: ACES, view_transform: ACES, display_colorspace: <USE_DISPLAY_NAME>, description: with ACES 1.0 RRT}
 
 displays:
   sRGB:
-    - !<Views> [Display, Raw, ACES]
+    - !<Views> [Raw, Display, ACES]
+  Rec.709:
+    - !<Views> [Raw, Display, ACES]
   Apple Display P3:
-    - !<Views> [Display, Raw, ACES]
-  Rec.709:  
-    - !<Views> [Display, Raw, ACES]
+    - !<Views> [Raw, Display, ACES]
   P3-DCI:
-    - !<Views> [Display, Raw, ACES]
+    - !<Views> [Raw, Display, ACES]
   P3-DCI-D65:
-    - !<Views> [Display, Raw, ACES]
+    - !<Views> [Raw, Display, ACES]
 
+active_displays: [sRGB, Rec.709, Apple Display P3, P3-DCI, P3-DCI-D65]
+active_views: []
 
-
-# Allows an application to ask OCIO to instantiate a new display from an ICC monitor profile.
-#virtual_display:
-#  - !<Views> [Display, Raw, ACES]
-
+default_view_transform: Passthrough
 
 view_transforms:
+  - !<ViewTransform>
+    name: Passthrough
+    description: No view_transform encoding.
+    from_scene_reference: !<ColorSpaceTransform> {src: CIE-XYZ-D65, dst: CIE-XYZ-D65}
 
   - !<ViewTransform>
-    name: ACES 1.0
-    description: |
-      ACES Output Transform for SDR displays in a video viewing environment. ACES neutrals are at D65.
+    name: ACES
+    description: the ACES 1.0 RRT
     from_scene_reference: !<GroupTransform>
       children:
         - !<ColorSpaceTransform> {src: CIE-XYZ-D65, dst: ACES2065-1}
-        - !<BuiltinTransform> {style: "ACES-OUTPUT - ACES2065-1_to_CIE-XYZ-D65 - SDR-VIDEO_1.0"}
-
+        - !<BuiltinTransform> {style: ACES-OUTPUT - ACES2065-1_to_CIE-XYZ-D65 - SDR-VIDEO_1.0}
 
 display_colorspaces:
-
   - !<ColorSpace>
     name: sRGB
     family: Display
+    equalitygroup: ""
+    bitdepth: unknown
     description: |
       {
-        components: {tf:sRGB EOTF, pm:sRGB, wp:D65},
-        description: sRGB monitor (piecewise EOTF)
+          "components": {
+              "tf": "sRGB EOTF",
+              "pm": "sRGB",
+              "wp": "D65"
+          },
+          "details": "sRGB monitor with piecewise EOTF"
       }
     isdata: false
     categories: [input, output]
-    encoding: sdr-video
+    encoding: srd-video
+    allocation: uniform
     from_display_reference: !<GroupTransform>
       children:
-        - !<BuiltinTransform> {style: "DISPLAY - CIE-XYZ-D65_to_sRGB"}
-        - !<RangeTransform> {min_in_value: 0., min_out_value: 0., max_in_value: 1., max_out_value: 1.}
-
-  - !<ColorSpace>
-  # source : https://github.com/nick-shaw/ocio-configs/blob/main/aces-0.1.1-ns/aces-0.1.1-ns.ocio
-    name: Apple Display P3
-    family: Display
-    description: |
-      {
-        components: {tf:sRGB EOTF, pm:DCI-P3, wp:D65},
-        description: Standard for Apple displays. DCI-P3 primaries with sRGB EOTF
-      }
-    isdata: false
-    categories: [output]
-    encoding: sdr-video
-    from_display_reference: !<GroupTransform>
-      children:
-        - !<MatrixTransform> {matrix: [ 1.3435782525843325, -0.2821796705261359, -0.06139858205819615, 0, -0.06529745278911941, 1.0757879158485741, -0.010490463059454922, 0, 0.002821787261701055, -0.01959849452449417, 1.0167767072627931, 0, 0, 0, 0, 1 ]}
-        - !<ExponentWithLinearTransform> {gamma: 2.4, offset: 0.055, direction: inverse}
-        - !<RangeTransform> {min_in_value: 0., min_out_value: 0., max_in_value: 1., max_out_value: 1.}
+        - !<BuiltinTransform> {style: DISPLAY - CIE-XYZ-D65_to_sRGB}
+        - !<RangeTransform> {min_in_value: 0, max_in_value: 1, min_out_value: 0, max_out_value: 1}
 
   - !<ColorSpace>
     name: Rec.709
     family: Display
+    equalitygroup: ""
+    bitdepth: unknown
     description: |
       {
-        components: {tf:pow(2.4), pm:BT.709, wp:D65},
-        description: BT.709 primaries with BT.1886 transfer-function encoding.
+          "components": {
+              "tf": "pow(2.4)",
+              "pm": "BT.709",
+              "wp": "D65"
+          },
+          "details": "with BT.1886 transfer-function encoding"
       }
     isdata: false
     categories: [output]
-    encoding: sdr-video
+    encoding: srd-video
+    allocation: uniform
     from_display_reference: !<GroupTransform>
       children:
-        - !<BuiltinTransform> {style: "DISPLAY - CIE-XYZ-D65_to_REC.1886-REC.709"}
-        - !<RangeTransform> {min_in_value: 0., min_out_value: 0., max_in_value: 1., max_out_value: 1.}
+        - !<BuiltinTransform> {style: DISPLAY - CIE-XYZ-D65_to_REC.1886-REC.709}
+        - !<RangeTransform> {min_in_value: 0, max_in_value: 1, min_out_value: 0, max_out_value: 1}
+
+  - !<ColorSpace>
+    name: Apple Display P3
+    family: Display
+    equalitygroup: ""
+    bitdepth: unknown
+    description: |
+      {
+          "components": {
+              "tf": "sRGB EOTF",
+              "pm": "DCI-P3",
+              "wp": "D65"
+          },
+          "details": "Standard for Apple displays."
+      }
+    isdata: false
+    categories: [output]
+    encoding: srd-video
+    allocation: uniform
+    from_display_reference: !<GroupTransform>
+      children:
+        - !<MatrixTransform> {matrix: [2.493496911941, -0.931383617919, -0.402710784451, 0, -0.829488969562, 1.762664060318, 0.023624685842, 0, 0.035845830244, -0.076172389268, 0.956884524008, 0, 0, 0, 0, 1]}
+        - !<ExponentWithLinearTransform> {gamma: 2.4, offset: 0.055, direction: inverse}
+        - !<RangeTransform> {min_in_value: 0, max_in_value: 1, min_out_value: 0, max_out_value: 1}
 
   - !<ColorSpace>
     name: P3-DCI
     family: Display
+    equalitygroup: ""
+    bitdepth: unknown
     description: |
       {
-        components: {tf:pow(2.6), pm:DCI-P3, wp:DCI-P3},
-        description: Gamma 2.6, P3-DCI (DCI white with Bradford adaptation)
+          "components": {
+              "tf": "pow(2.6)",
+              "pm": "DCI-P3",
+              "wp": "DCI-P3"
+          },
+          "details": "Gamma 2.6 (DCI white with Bradford adaptation)"
       }
     isdata: false
     categories: [output]
-    encoding: sdr-video
+    encoding: srd-video
     allocation: uniform
-    from_display_reference: !<BuiltinTransform> {style: DISPLAY - CIE-XYZ-D65_to_G2.6-P3-DCI-BFD}
-  
+    from_display_reference: !<GroupTransform>
+      children:
+        - !<BuiltinTransform> {style: DISPLAY - CIE-XYZ-D65_to_G2.6-P3-DCI-BFD}
+        - !<RangeTransform> {min_in_value: 0, max_in_value: 1, min_out_value: 0, max_out_value: 1}
+
   - !<ColorSpace>
     name: P3-DCI-D65
     family: Display
+    equalitygroup: ""
+    bitdepth: unknown
     description: |
       {
-        components: {tf:pow(2.6), pm:DCI-P3, wp:D65},
-        description: Gamma 2.6, P3-DCI, D65 whitepoint 
+          "components": {
+              "tf": "pow(2.6)",
+              "pm": "DCI-P3",
+              "wp": "D65"
+          },
+          "details": "For display using a D65 whitepoint instead of DCI-P3"
       }
     isdata: false
     categories: [output]
-    encoding: sdr-video
+    encoding: srd-video
     allocation: uniform
-    from_display_reference: !<BuiltinTransform> {style: DISPLAY - CIE-XYZ-D65_to_G2.6-P3-D65}
-
+    from_display_reference: !<GroupTransform>
+      children:
+        - !<BuiltinTransform> {style: DISPLAY - CIE-XYZ-D65_to_G2.6-P3-D65}
+        - !<RangeTransform> {min_in_value: 0, max_in_value: 1, min_out_value: 0, max_out_value: 1}
 
 colorspaces:
-
   - !<ColorSpace>
     name: CIE-XYZ-D65
     family: Scene
-    categories: [input, workspace]
+    equalitygroup: ""
+    bitdepth: unknown
     description: |
       {
-        components: {tf:linear, pm:CIE-XYZ, wp:D65},
-        description: The reference colorspace, CIE XYZ with D65 adaptive white point
+          "components": {
+              "tf": "linear",
+              "pm": "CIE-XYZ",
+              "wp": "D65"
+          },
+          "details": "The reference colorspace, CIE XYZ with D65 adaptive white point"
       }
-    encoding: scene-linear
     isdata: false
+    categories: [input, workspace]
+    encoding: scene-linear
+    allocation: uniform
 
   - !<ColorSpace>
     name: Raw
     family: Scene
+    equalitygroup: ""
+    bitdepth: unknown
     description: |
-      No-operation option.
+      {
+          "components": {
+              "tf": "none",
+              "pm": "none",
+              "wp": "none"
+          },
+          "details": "The No-operation colorspace."
+      }
     isdata: true
-  
+    categories: [input, output]
+    encoding: data
+    allocation: uniform
+
   - !<ColorSpace>
     name: sRGB - linear
     family: Scene
-    categories: [ input, output, workspace ]
+    equalitygroup: ""
+    bitdepth: unknown
     description: |
       {
-        components: {tf:linear, pm:sRGB, wp:D65},
-        description: sRGB colorspace with a linear transfer function.
+          "components": {
+              "tf": "linear",
+              "pm": "sRGB",
+              "wp": "D65"
+          },
+          "details": "With a linear transfer function instead."
       }
-    encoding: scene-linear
     isdata: false
-    to_scene_reference: !<MatrixTransform> {matrix: [0.41239, 0.35759, 0.18049, 0, 0.21260, 0.71519, 0.0722, 0, 0.01930, 0.1192, 0.95050, 0, 0, 0, 0, 1]}
-  
+    categories: [input, output, workspace]
+    encoding: scene-linear
+    allocation: uniform
+    to_scene_reference: !<MatrixTransform> {matrix: [0.4124, 0.3576, 0.1805, 0, 0.2126, 0.7152, 0.0722, 0, 0.0193, 0.1192, 0.9505, 0, 0, 0, 0, 1]}
+
   - !<ColorSpace>
     name: ACES2065-1
     family: ACES
-    categories: [ input, output]
+    equalitygroup: ""
+    bitdepth: unknown
     description: |
       {
-        components: {tf:linear, pm:ACES2065-1, wp:ACES},
-        description: The Academy Color Encoding System reference color space. Also AP0
+          "components": {
+              "tf": "linear",
+              "pm": "ACES2065-1",
+              "wp": "ACES"
+          },
+          "details": "ACES reference space. Also AP0."
       }
-    encoding: scene-linear
     isdata: false
-    to_scene_reference: !<BuiltinTransform> {style: UTILITY - ACES-AP0_to_CIE-XYZ-D65_BFD}
-  
+    categories: [input, output]
+    encoding: scene-linear
+    allocation: uniform
+    to_scene_reference: !<GroupTransform>
+      children:
+        - !<BuiltinTransform> {style: UTILITY - ACES-AP0_to_CIE-XYZ-D65_BFD}
+
   - !<ColorSpace>
     name: ACEScg
     family: ACES
-    categories: [input, output, workspace]
+    equalitygroup: ""
+    bitdepth: unknown
     description: |
       {
-        components: {tf:linear, pm:ACEScg, wp:ACES},
-        description: ACES working colorspace. Also AP1
+          "components": {
+              "tf": "linear",
+              "pm": "ACEScg",
+              "wp": "ACES"
+          },
+          "details": "ACES working space. Also AP1."
       }
-    encoding: scene-linear
     isdata: false
-    to_scene_reference: !<BuiltinTransform> {style: UTILITY - ACES-AP1_to_CIE-XYZ-D65_BFD}
-
+    categories: [input, output, workspace]
+    encoding: scene-linear
+    allocation: uniform
+    to_scene_reference: !<GroupTransform>
+      children:
+        - !<BuiltinTransform> {style: UTILITY - ACES-AP1_to_CIE-XYZ-D65_BFD}

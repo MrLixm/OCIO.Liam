@@ -11,7 +11,7 @@ mck_dir = Path(__file__).parent
 sys.path.append(str(mck_dir))
 
 # configure env before staring makeconfig
-os.environ["MKC_LOG_LVL"] = "INFO"
+os.environ["MKC_LOG_LVL"] = "INFO"  # TODO doesn't work
 
 from Versatile import Versatile
 
@@ -31,11 +31,11 @@ def cook():
     versatile = Versatile()
     versatile.validate()
 
-    logger.debug(
-        "\n\n"
-        "--- config.ocio -----------------\n\n"
-        f"{versatile}"
-    )
+    # logger.debug(
+    #     "\n\n"
+    #     "--- config.ocio -----------------\n\n"
+    #     f"{versatile}"
+    # )
 
     versatile.write_to_disk("../../config/config.ocio")
 
