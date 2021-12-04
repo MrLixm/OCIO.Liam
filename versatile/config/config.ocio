@@ -6,12 +6,15 @@ search_path: ""
 strictparsing: true
 luma: [0.2126, 0.7152, 0.0722]
 name: Versatile
-description: A versatile sRGB based configuration for artists.
+description: |
+  A versatile sRGB based configuration for artists.
+  Visit https://github.com/MrLixm/OCIO.Liam
 
 roles:
   aces_interchange: CIE-XYZ-D65
   cie_xyz_d65_interchange: CIE-XYZ-D65
   color_picking: sRGB
+  compositing_log: ACEScct
   data: Raw
   default: Raw
   matte_paint: sRGB
@@ -20,24 +23,30 @@ roles:
   texture_paint: sRGB - linear
 
 file_rules:
+  - !<Rule> {name: exr, colorspace: Raw, pattern: "*", extension: exr}
+  - !<Rule> {name: jpg, colorspace: sRGB, pattern: "*", extension: jpg}
+  - !<Rule> {name: png, colorspace: sRGB, pattern: "*", extension: png}
+  - !<Rule> {name: tx, colorspace: Raw, pattern: "*", extension: tx}
+  - !<Rule> {name: tex, colorspace: Raw, pattern: "*", extension: tex}
+  - !<Rule> {name: hdr, colorspace: sRGB - linear, pattern: "*", extension: hdr}
   - !<Rule> {name: Default, colorspace: default}
 
 shared_views:
-  - !<View> {name: Raw, colorspace: Raw, description: Send data directly to the display without encoding.}
   - !<View> {name: Display, view_transform: Passthrough, display_colorspace: <USE_DISPLAY_NAME>, description: simple display-encoding defined by the colorspace's transfer-function}
   - !<View> {name: ACES, view_transform: ACES, display_colorspace: <USE_DISPLAY_NAME>, description: with ACES 1.0 RRT}
+  - !<View> {name: Raw, colorspace: Raw, description: Send data directly to the display without encoding.}
 
 displays:
   sRGB:
-    - !<Views> [Raw, Display, ACES]
+    - !<Views> [Display, ACES, Raw]
   Rec.709:
-    - !<Views> [Raw, Display, ACES]
+    - !<Views> [Display, ACES, Raw]
   Apple Display P3:
-    - !<Views> [Raw, Display, ACES]
+    - !<Views> [Display, ACES, Raw]
   P3-DCI:
-    - !<Views> [Raw, Display, ACES]
+    - !<Views> [Display, ACES, Raw]
   P3-DCI-D65:
-    - !<Views> [Raw, Display, ACES]
+    - !<Views> [Display, ACES, Raw]
 
 active_displays: [sRGB, Rec.709, Apple Display P3, P3-DCI, P3-DCI-D65]
 active_views: []
@@ -75,7 +84,7 @@ display_colorspaces:
       }
     isdata: false
     categories: [input, output]
-    encoding: srd-video
+    encoding: sdr-video
     allocation: uniform
     from_display_reference: !<GroupTransform>
       children:
@@ -98,7 +107,7 @@ display_colorspaces:
       }
     isdata: false
     categories: [output]
-    encoding: srd-video
+    encoding: sdr-video
     allocation: uniform
     from_display_reference: !<GroupTransform>
       children:
@@ -121,7 +130,7 @@ display_colorspaces:
       }
     isdata: false
     categories: [output]
-    encoding: srd-video
+    encoding: sdr-video
     allocation: uniform
     from_display_reference: !<GroupTransform>
       children:
@@ -145,7 +154,7 @@ display_colorspaces:
       }
     isdata: false
     categories: [output]
-    encoding: srd-video
+    encoding: sdr-video
     allocation: uniform
     from_display_reference: !<GroupTransform>
       children:
@@ -168,7 +177,7 @@ display_colorspaces:
       }
     isdata: false
     categories: [output]
-    encoding: srd-video
+    encoding: sdr-video
     allocation: uniform
     from_display_reference: !<GroupTransform>
       children:
@@ -277,3 +286,35 @@ colorspaces:
     to_scene_reference: !<GroupTransform>
       children:
         - !<BuiltinTransform> {style: UTILITY - ACES-AP1_to_CIE-XYZ-D65_BFD}
+
+  - !<ColorSpace>
+    name: ACEScct
+    family: ACES
+    equalitygroup: ""
+    bitdepth: unknown
+    description: |
+      {
+          "components": {
+              "tf": "ACEScct",
+              "pm": "ACEScg",
+              "wp": "ACES"
+          },
+          "details": "Quasi-Logarithmic Encoding of ACES Data for use within Color Grading Systems"
+      }
+    isdata: false
+    categories: [workspace]
+    encoding: log
+    allocation: uniform
+    to_scene_reference: !<GroupTransform>
+      children:
+        - !<BuiltinTransform> {style: ACEScct_to_ACES2065-1}
+        - !<BuiltinTransform> {style: UTILITY - ACES-AP0_to_CIE-XYZ-D65_BFD}
+
+named_transforms:
+  - !<NamedTransform>
+    name: sRGB - curve
+    description: Encoding the sRGB EOTF only.
+    family: Display
+    categories: [input, output]
+    encoding: sdr-video
+    transform: !<ExponentWithLinearTransform> {gamma: 2.4, offset: 0.055, direction: inverse}

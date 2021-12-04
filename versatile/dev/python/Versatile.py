@@ -18,7 +18,8 @@ class Versatile(makeconfig.BaseConfig):
         self.config.setVersion(2, 0)
         self.config.setName(self.name)
         self.config.setDescription(
-            'A versatile sRGB based configuration for artists.'
+            'A versatile sRGB based configuration for artists.\n'
+            'Visit https://github.com/MrLixm/OCIO.Liam'
         )
 
         return
@@ -143,6 +144,56 @@ class Versatile(makeconfig.BaseConfig):
         self.cs_ap1.setTransform(transform, ocio.COLORSPACE_DIR_TO_REFERENCE)
         self.add(self.cs_ap1)
 
+        """____________________________________________________________________
+
+            ACEScct
+
+        """
+        self.cs_acescct = Colorspace(
+            name="ACEScct",
+            description=ColorspaceDescription(
+                transfer_function="ACEScct",
+                primaries="ACEScg",
+                whitepoint="ACES",
+                details="Quasi-Logarithmic Encoding of ACES Data for use within Color Grading Systems",
+            ),
+            encoding=Encodings.log,
+            family=Families.aces,
+            categories=[Categories.workspace],
+        )
+        transform = ocio.GroupTransform(
+            [
+                ocio.BuiltinTransform(
+                    style="ACEScct_to_ACES2065-1"),
+                ocio.BuiltinTransform(
+                    style="UTILITY - ACES-AP0_to_CIE-XYZ-D65_BFD"),
+            ]
+        )
+        self.cs_acescct.setTransform(transform, ocio.COLORSPACE_DIR_TO_REFERENCE)
+        self.add(self.cs_acescct)
+
+        return
+
+    def cook_named_transform(self):
+
+        self.nt_srgb = NamedTransform(
+            name="sRGB - curve",
+            description="Encoding the sRGB EOTF only.",
+            encoding=Encodings.sdr_video,
+            family=Families.display,
+            categories=[Categories.input, Categories.output],
+        )
+        transform = ocio.ExponentWithLinearTransform(
+                    [2.4, 2.4, 2.4, 1.0],
+                    [0.055, 0.055, 0.055, 0.0],
+                    ocio.NEGATIVE_LINEAR,
+                    ocio.TRANSFORM_DIR_INVERSE
+        )
+        self.nt_srgb.setTransform(transform, ocio.TRANSFORM_DIR_FORWARD)
+        self.add(self.nt_srgb)
+
+        return
+
     def cook_colorspaces_display(self):
 
         _ = "just to avoid the under being considered as method's docstring"
@@ -160,7 +211,7 @@ class Versatile(makeconfig.BaseConfig):
                 whitepoint="D65",
                 details="sRGB monitor with piecewise EOTF",
             ),
-            encoding=Encodings.srd_video,
+            encoding=Encodings.sdr_video,
             family=Families.display,
             categories=[Categories.input, Categories.output],
         )
@@ -187,7 +238,7 @@ class Versatile(makeconfig.BaseConfig):
                 whitepoint="D65",
                 details="with BT.1886 transfer-function encoding",
             ),
-            encoding=Encodings.srd_video,
+            encoding=Encodings.sdr_video,
             family=Families.display,
             categories=[Categories.output],
         )
@@ -214,7 +265,7 @@ class Versatile(makeconfig.BaseConfig):
                 whitepoint="D65",
                 details="Standard for Apple displays.",
             ),
-            encoding=Encodings.srd_video,
+            encoding=Encodings.sdr_video,
             family=Families.display,
             categories=[Categories.output],
         )
@@ -256,7 +307,7 @@ class Versatile(makeconfig.BaseConfig):
                 whitepoint="DCI-P3",
                 details="Gamma 2.6 (DCI white with Bradford adaptation)",
             ),
-            encoding=Encodings.srd_video,
+            encoding=Encodings.sdr_video,
             family=Families.display,
             categories=[Categories.output],
         )
@@ -283,7 +334,7 @@ class Versatile(makeconfig.BaseConfig):
                 whitepoint="D65",
                 details="For display using a D65 whitepoint instead of DCI-P3",
             ),
-            encoding=Encodings.srd_video,
+            encoding=Encodings.sdr_video,
             family=Families.display,
             categories=[Categories.output],
         )
@@ -356,7 +407,8 @@ class Versatile(makeconfig.BaseConfig):
             colorspace=ocio.OCIO_VIEW_USE_DISPLAY_NAME
         )
 
-        all_views = [self.view_raw, self.view_disp, self.view_aces]
+        # !! order is important !!
+        all_views = [self.view_disp, self.view_aces, self.view_raw]
 
         # then build the displays,
         # re-use the name from the associated display colorspaces.
@@ -409,6 +461,54 @@ class Versatile(makeconfig.BaseConfig):
         self.config.setRole(ocio.ROLE_COLOR_PICKING, self.cs_srgb.name)
         self.config.setRole(ocio.ROLE_MATTE_PAINT, self.cs_srgb.name)
         self.config.setRole(ocio.ROLE_TEXTURE_PAINT, self.cs_srgb_lin.name)
+        self.config.setRole(ocio.ROLE_COMPOSITING_LOG, self.cs_acescct.name)
 
         return
 
+    def cook_misc(self):
+
+        self.file_rules = ocio.FileRules()
+        self.file_rules.insertRule(
+            0,
+            "exr",
+            str(self.cs_raw),
+            "*",
+            "exr"
+        )
+        self.file_rules.insertRule(
+            1,
+            "jpg",
+            str(self.cs_srgb),
+            "*",
+            "jpg"
+        )
+        self.file_rules.insertRule(
+            2,
+            "png",
+            str(self.cs_srgb),
+            "*",
+            "png"
+        )
+        self.file_rules.insertRule(
+            3,
+            "tx",
+            str(self.cs_raw),
+            "*",
+            "tx"
+        )
+        self.file_rules.insertRule(
+            4,
+            "tex",
+            str(self.cs_raw),
+            "*",
+            "tex"
+        )
+        self.file_rules.insertRule(
+            5,
+            "hdr",
+            str(self.cs_srgb_lin),
+            "*",
+            "hdr"
+        )
+        self.config.setFileRules(self.file_rules)
+        pass
