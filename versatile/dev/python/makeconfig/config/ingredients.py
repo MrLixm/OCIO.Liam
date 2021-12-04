@@ -3,6 +3,7 @@
 """
 import json
 import logging
+from pathlib import Path
 from typing import List, Tuple
 
 import PyOpenColorIO as ocio
@@ -22,7 +23,7 @@ __all__ = [
     "ViewTransform"
 ]
 
-"""
+"""----------------------------------------------------------------------------
 We defined "data" classes to hold names used in various parameters.
 This avoid human-mistakes as typos and give auto-completions to 
 see availables options.
@@ -57,6 +58,12 @@ class Encodings:
     srd_video = "srd-video"  # numeric repr proportional to sdr video signal.
     hdr_video = "hdr_video"  # numeric repr proportional to hdr video signal.
     data = "data"  # A non-color channel. (usually + isdata attribute = true.)
+
+
+"""----------------------------------------------------------------------------
+These classes represent OCIO config components. SOme of them subclass the one
+define in the OCIO python package while other are created from scratch.
+"""
 
 
 class ColorspaceDescription:
@@ -334,3 +341,52 @@ class View:
 class ViewTransform(ocio.ViewTransform):
     def __str__(self):
         return self.getName()
+
+
+"""----------------------------------------------------------------------------
+These classes doesn't represents any OCIO components but are still required to 
+build the OCIO config.
+"""
+
+
+class DiskDependency:
+    def __init__(self, path_relative, data, write_encoding="utf-8"):
+        """
+        Represent some data that must be writen next to the config.ocio.
+        Luts are the most common example.
+
+        Should be stored in the config object and written at the same time of
+        the config.ocio file.
+
+        The path must be relative to the config.ocio file.
+
+        Args:
+            path_relative (str or Path):
+            data (str): data to write
+            write_encoding (str): python.codecs encoding for write
+
+        """
+        self.path_relative = Path(path_relative)
+        self.data = data
+        self.encoding = write_encoding
+
+    def write(self, path):
+        """
+        Write to disk.
+
+        Args:
+            path(str or Path):
+
+        """
+
+        write_path = Path(path) / self.path_relative
+        write_path = write_path.resolve()
+        write_path.write_text(self.data, encoding=self.encoding)
+
+        if not write_path.exists():
+            raise FileNotFoundError(
+                f"The file <{write_path}> doesn't exists on disk while it should."
+            )
+
+        logger.info(f"[DiskDependency][write] Finished writing to <{write_path}>")
+        return
