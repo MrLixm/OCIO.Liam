@@ -16,7 +16,6 @@ def cook():
     logger.info(f"Using OCIO version : {ocio.__version__}")
 
     versatile = recipes.Versatile()
-    versatile.cook()
     # versatile.validate()
 
     logger.debug(

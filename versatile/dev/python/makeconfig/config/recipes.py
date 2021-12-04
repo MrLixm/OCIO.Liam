@@ -34,16 +34,62 @@ class Versatile:
         Call str() on this instance to get a ready-to-write string.
         """
 
-        self.config = None  # type: ocio.Config
+        self.config = ocio.Config()
         self.colorspaces = list()
         self.displays = list()
-        self.views = list()
+        self.looks = list()
+        self.viewtransforms = list()
 
         return
 
     def __str__(self):
+        """
+        Returns:
+            str: ready-to-write .ocio file content
+        """
+        self.cook()
+        self.bake()
         return self.config.serialize()
 
+    def add(self, component):
+        """
+        Add an object to the config and let it guess how it should add it.
+        Objects is actually stored in a list , it is only added to the
+        config when bake() is called.
+
+        Args:
+            component(any):
+        """
+
+        if isinstance(component, Display):
+            self.displays.append(component)
+            logger.debug(
+                f"[{self.__class__.__name__}][add] added Display <{component}>"
+            )
+        elif isinstance(component, (Colorspace, ColorspaceDisplay)):
+            self.colorspaces.append(component)
+            logger.debug(
+                f"[{self.__class__.__name__}][add] added Colorspace <{component}>"
+            )
+        elif isinstance(component, Look):
+            self.looks.append(component)
+            logger.debug(
+                f"[{self.__class__.__name__}][add] added Look <{component}>"
+            )
+        elif isinstance(component, ViewTransform):
+            self.viewtransforms.append(component)
+            logger.debug(
+                f"[{self.__class__.__name__}][add] added ViewTransform <{component}>"
+            )
+        else:
+            raise TypeError(
+                "<component> is not from a supported type."
+                "Excpected Union[Display, Colorspace, ColorspaceDisplay, Look]"
+                f", got <{type(component)}>"
+            )
+
+        return
+    
     def bake(self):
         """
         Bake the various attributes holded by the class instance to the actual
@@ -59,49 +105,72 @@ class Versatile:
             for view in display.views:
 
                 if view.is_shared_view:
-                    # this mean we will add teh same view multiple times but
+                    # this mean we will add the same view multiple times but
                     # not an issue as it overwrite the previous one.
                     self.config.addSharedView(
                         view=view.name,
-                        viewTransformName=str(view.view_transform),
-                        colorSpaceName=str(view.colorspace),
-                        looks=str(view.looks),
-                        ruleName=str(view.rule_name),
-                        description=str(view.description)
+                        viewTransformName=view.view_transform,
+                        colorSpaceName=view.colorspace,
+                        looks=view.looks,
+                        ruleName=view.rule_name,
+                        description=view.description
                     )
-                    self.config.addDisplaySharedView(
-                        display.name,
-                        view.name
-                    )
+                    # this one tho, will raise an error if you add 2 time the
+                    # same view.
+                    try:
+                        self.config.addDisplaySharedView(
+                            display.name,
+                            view.name
+                        )
+                    except Exception as excp:
+                        logger.debug(
+                            f"[{self.__class__.__name__}][bake] Can't perform"
+                            f"self.config.addDisplaySharedView(): {excp}"
+                        )
+
                 else:
                     self.config.addDisplayView(
                         display.name,
                         view=view.name,
-                        viewTransform=str(view.view_transform),
-                        displayColorSpaceName=str(view.colorspace),
-                        looks=str(view.looks),
-                        ruleName=str(view.rule_name),
-                        description=str(view.description)
+                        viewTransform=view.view_transform,
+                        displayColorSpaceName=view.colorspace,
+                        looks=view.looks,
+                        ruleName=view.rule_name,
+                        description=view.description
                     )
 
                 continue
 
             continue
 
+        for look in self.looks:
+            self.config.addLook(look)
+
+        for viewtransform in self.viewtransforms:
+            self.config.addViewTransform(viewtransform)
+
+        logger.debug(
+            f"[{self.__class__.__name__}][bake] Finished"
+        )
         return
-    
+
     def cook(self):
         """
         Create a new config and build its content.
+        This reset any change done to self.config.
         """
 
+        # make sure the config is reset by creating a new instance
         self.config = ocio.Config()
 
+        # ! Order is important !
         self.cook_root()
         self.cook_colorspaces()
+        self.cook_looks()
+        self.cook_viewtransforms()
         self.cook_display()
         self.cook_roles()
-        
+
         return
 
     @utils.check_config_init
@@ -109,18 +178,20 @@ class Versatile:
         """
         Build options related to the config itself.
         """
-        
+
         self.config.setVersion(2, 1)
         self.config.setName(self.name)
         self.config.setDescription(
             'A versatile sRGB based configuration for artists.'
         )
-        
+
         return
 
     @utils.check_config_init
     def cook_colorspaces(self):
         """
+        Build colorspaces, display colrospaces, and looks.
+        They should be built first to be referenced is other components.
         """
 
         """====================================================================
@@ -403,31 +474,41 @@ class Versatile:
         self.cs_ap1.setTransform(transform, ocio.COLORSPACE_DIR_TO_REFERENCE)
         self.add(self.cs_ap1)
 
+    @utils.check_config_init
+    def cook_looks(self):
+
         return
 
     @utils.check_config_init
-    def cook_roles(self):
-        """
-        """
-        # TODO finish once all colorspaces defined
-        self.config.setRole(ocio.ROLE_INTERCHANGE_SCENE, self.cs_ref.name)
-        self.config.setRole(ocio.ROLE_INTERCHANGE_DISPLAY, self.cs_ref.name)
-        self.config.setRole(ocio.ROLE_SCENE_LINEAR, self.cs_srgb_lin.name)
-        self.config.setRole(ocio.ROLE_REFERENCE, self.cs_ref.name)
-        self.config.setRole(ocio.ROLE_DATA, self.cs_raw.name)
-        self.config.setRole(ocio.ROLE_DEFAULT, self.cs_raw.name)
-        self.config.setRole(ocio.ROLE_COLOR_PICKING, self.cs_ref.name)
-        self.config.setRole(ocio.ROLE_MATTE_PAINT, self.cs_srgb.name)
-        self.config.setRole(ocio.ROLE_TEXTURE_PAINT, self.cs_srgb_lin.name)
+    def cook_viewtransforms(self):
+
+        self.viewtm_aces = ViewTransform(ocio.REFERENCE_SPACE_SCENE)
+        self.viewtm_aces.setName("ACES")
+        transform = ocio.GroupTransform(
+            [
+                ocio.ColorSpaceTransform(
+                    src=self.cs_ref.name,
+                    dst=self.cs_ap0.name
+                ),
+                ocio.BuiltinTransform(style="ACES-OUTPUT - ACES2065-1_to_CIE-XYZ-D65 - SDR-VIDEO_1.0"),
+            ]
+        )
+        self.viewtm_aces.setTransform(transform, ocio.VIEWTRANSFORM_DIR_FROM_REFERENCE)
+        self.add(self.viewtm_aces)
 
         return
 
     @utils.check_config_init
     def cook_display(self):
+        """
+        Create Views and Displays.
+        Only Displays need to be added to the config as View should be
+        parented to a Display..
+        """
 
-        self.view_raw = View("Raw")
-        self.view_disp = View("Display")
-        self.view_test = View("Test")
+        self.view_raw = View("Raw", colorspace=self.cs_raw)
+        self.view_disp = View("Display", colorspace=self.cs_raw)
+        self.view_test = View("Test", colorspace=self.cs_raw)
 
         self.dp_srgb = Display(
             "sRGB",
@@ -449,6 +530,23 @@ class Versatile:
         return
 
     @utils.check_config_init
+    def cook_roles(self):
+        """
+        """
+        # TODO finish once all colorspaces defined
+        self.config.setRole(ocio.ROLE_INTERCHANGE_SCENE, self.cs_ref.name)
+        self.config.setRole(ocio.ROLE_INTERCHANGE_DISPLAY, self.cs_ref.name)
+        self.config.setRole(ocio.ROLE_SCENE_LINEAR, self.cs_srgb_lin.name)
+        self.config.setRole(ocio.ROLE_REFERENCE, self.cs_ref.name)
+        self.config.setRole(ocio.ROLE_DATA, self.cs_raw.name)
+        self.config.setRole(ocio.ROLE_DEFAULT, self.cs_raw.name)
+        self.config.setRole(ocio.ROLE_COLOR_PICKING, self.cs_ref.name)
+        self.config.setRole(ocio.ROLE_MATTE_PAINT, self.cs_srgb.name)
+        self.config.setRole(ocio.ROLE_TEXTURE_PAINT, self.cs_srgb_lin.name)
+
+        return
+
+    @utils.check_config_init
     def validate(self):
         """
         Raise an error if the config is not properly built.
@@ -456,47 +554,3 @@ class Versatile:
         self.config.validate()
         return
 
-    def add(self, component):
-        """
-        Add an object to the config and let it guess how it should add it
-
-        Args:
-            component(any):
-        """
-
-        if isinstance(component, Display):
-            self.add_display(display=component)
-        elif isinstance(component, (Colorspace, ColorspaceDisplay)):
-            self.add_colorspace(colorspace=component)
-        else:
-            raise TypeError(
-                "<component> is not from a supported type."
-                "Excpected Union[Display, Colorspace, ColorspaceDisplay], got "
-                f"<{type(component)}>"
-            )
-
-        return
-
-    def add_colorspace(self, colorspace):
-        """
-        overload config.addColorSpace() to perform additional operations.
-
-        Args:
-            colorspace(Colorspace):
-
-        """
-        self.colorspaces.append(colorspace)
-
-        return
-
-    def add_display(self, display):
-        """
-        Add display and shared_views to the config.
-
-        Args:
-            display(Display):
-
-        """
-        self.displays.append(display)
-
-        return

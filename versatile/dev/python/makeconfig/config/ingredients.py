@@ -3,6 +3,7 @@
 """
 import json
 import logging
+from typing import List, Tuple
 
 import PyOpenColorIO as ocio
 
@@ -16,7 +17,9 @@ __all__ = [
     "Colorspace",
     "ColorspaceDisplay",
     "Display",
-    "View"
+    "View",
+    "Look",
+    "ViewTransform"
 ]
 
 """
@@ -163,6 +166,11 @@ class ColorspaceDisplay(Colorspace):
         super().__init__(name, description, encoding, family, categories, is_data)
 
 
+class Look(ocio.Look):
+    def __str__(self):
+        return self.getName()
+
+
 class Display:
 
     def __init__(self, name, views=None):
@@ -188,6 +196,9 @@ class Display:
             )
 
         return
+
+    def __str__(self):
+        return self.name
 
     def add_view(self, view):
         """ Add a View to this Display.
@@ -216,9 +227,8 @@ class View:
     def __init__(
             self,
             name,
-            colorspace=None,
+            colorspace,
             view_transform=None,
-            display_colorspace=None,
             looks=None,
             description=None,
             parents=None,
@@ -227,26 +237,42 @@ class View:
         """
 
         Args:
-            name:
-            colorspace:
-            view_transform:
-            display_colorspace:
-            looks:
-            description(str):
-            parents(list or tuple or set or Display):
-            rule_name(str)
+            name(str):
+            colorspace(Colorspace):
+            view_transform(ViewTransform or None):
+            looks(List[Tuple[str,Look]] or None):
+                list of tuple, each tuple must start with look direction(+/-)
+                and the last index is the Look instance itself.
+
+                ex: [ ("+", LooK(A)), ("-", Look(B)) ]
+
+            description(str or None):
+            parents(list or tuple or set or Display or None):
+            rule_name(str or None)
         """
         self.parents = list()
+        self.looks = str()
 
         self.name = name
         self.description = description
-        self.colorspace = colorspace
-        self.view_transform = view_transform
-        self.display_colorspace = display_colorspace
-        self.looks = looks
+        # converting to str should return the object the name
+        self.colorspace = str(colorspace) if colorspace else None
+        # converting to str should return the object the name
+        self.view_transform = str(view_transform) if view_transform else None
         self.rule_name = rule_name
 
-        if isinstance(parents, (list, tuple, set)):
+        # pre-format the looks to be added as argument later.
+        if looks:
+            for index, look in enumerate(looks):
+                look_dir = look[0]
+                look_instance = look[1]
+                str_end = "," if index > 0 else ""
+                self.looks += f"{look_dir}{look_instance}{str_end}"
+
+        # apply the parent/children system for Display/View
+        if not parents:
+            pass
+        elif isinstance(parents, (list, tuple, set)):
             for parent in parents:
                 self.add_parent(parent=parent)
         elif isinstance(parents, Display):
@@ -265,7 +291,6 @@ class View:
         Returns:
             bool: Is the view used by multiple Display ?
         """
-
         return len(self.parents) > 1
 
     def add_parent(self, parent):
@@ -284,4 +309,28 @@ class View:
         """
         Raise an error if this is not a pontential valid view.
         """
+        if not self.colorspace:
+            raise ValueError(
+                f"View <{self.name}> require a colorspace to be specified."
+            )
+
+        if isinstance(self.colorspace, ColorspaceDisplay):
+            if not self.view_transform:
+                raise ValueError(
+                    f"View <{self.name}> require a view_transform to be "
+                    f"specified as the colorspace <{self.colorspace}>"
+                    f"is display-referred."
+                )
+
+        if not self.parents:
+            raise ValueError(
+                f"View <{self.name}> doesn't have any parent."
+                f"You need to add it to a Display."
+            )
+
         return
+
+
+class ViewTransform(ocio.ViewTransform):
+    def __str__(self):
+        return self.getName()
