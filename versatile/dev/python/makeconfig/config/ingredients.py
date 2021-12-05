@@ -22,7 +22,8 @@ __all__ = [
     "View",
     "Look",
     "ViewTransform",
-    "NamedTransform"
+    "NamedTransform",
+    "DiskDependency"
 ]
 
 """----------------------------------------------------------------------------
