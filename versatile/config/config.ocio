@@ -310,9 +310,29 @@ colorspaces:
         - !<BuiltinTransform> {style: ACEScct_to_ACES2065-1}
         - !<BuiltinTransform> {style: UTILITY - ACES-AP0_to_CIE-XYZ-D65_BFD}
 
+  - !<ColorSpace>
+    name: sRGB - curve
+    family: Display
+    equalitygroup: ""
+    bitdepth: unknown
+    description: |
+      {
+          "components": {
+              "tf": "sRGB EOTF",
+              "pm": "None",
+              "wp": "None"
+          },
+          "details": "Encoding the sRGB EOTF only."
+      }
+    isdata: false
+    categories: [input, output]
+    encoding: sdr-video
+    allocation: uniform
+    from_scene_reference: !<ExponentWithLinearTransform> {gamma: 2.4, offset: 0.055}
+
 named_transforms:
   - !<NamedTransform>
-    name: sRGB - curve
+    name: sRGB - curve (nt)
     description: Encoding the sRGB EOTF only.
     family: Display
     categories: [input, output]
