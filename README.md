@@ -8,13 +8,16 @@ Custom OCIO configurations I made for myself.
 
 [./versatile](./versatile)
 
-A versatile (who would have guessed) OCIO v2 configuration for individual artists.
+A versatile (who would have guessed), lightweight (no LUTs)
+OCIO configuration for individual artists.
 
-- working colorspace is `sRGB - linear`
+![working colorspace](https://img.shields.io/badge/working%20colorspace-sRGB%20--%20linear-6a54c4)
 
-- reference colorspace is `CIE-XYZ-D65`
+![reference colorspace](https://img.shields.io/badge/reference%20colorspace-CIE--XYZ--D65-6a54c4)
 
 ### makeconfig
+
+![python version](https://img.shields.io/badge/Python%20Version-3%2B-green?style=flat&logo=Python&logoColor=white)
 
 [./versatile/dev/python/makeconfig](./versatile/dev/python/makeconfig)
 

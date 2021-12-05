@@ -5,9 +5,9 @@
 A versatile (who would have guessed), lightweight (no LUTs)
 OCIO configuration for individual artists.
 
-- working colorspace is `sRGB - linear`
+![working colorspace](https://img.shields.io/badge/working%20colorspace-sRGB%20--%20linear-6a54c4)
 
-- reference colorspace is `CIE-XYZ-D65`
+![reference colorspace](https://img.shields.io/badge/reference%20colorspace-CIE--XYZ--D65-6a54c4)
 
 ## Specifications
 
