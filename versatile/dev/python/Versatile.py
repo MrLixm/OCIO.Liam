@@ -172,12 +172,40 @@ class Versatile(makeconfig.BaseConfig):
         self.cs_acescct.setTransform(transform, ocio.COLORSPACE_DIR_TO_REFERENCE)
         self.add(self.cs_acescct)
 
+        """____________________________________________________________________
+
+            sRGB curve
+            
+            Because Nuke can't read NamedTransforms. (intended ??)
+
+        """
+        self.cs_srgb_curve = Colorspace(
+            name="sRGB - curve",
+            description=ColorspaceDescription(
+                transfer_function="sRGB EOTF",
+                primaries="None",
+                whitepoint="None",
+                details="Encoding the sRGB EOTF only.",
+            ),
+            encoding=Encodings.sdr_video,
+            family=Families.display,
+            categories=[Categories.input, Categories.output],
+        )
+        transform = ocio.ExponentWithLinearTransform(
+                    [2.4, 2.4, 2.4, 1.0],
+                    [0.055, 0.055, 0.055, 0.0],
+                    ocio.NEGATIVE_LINEAR,
+                    ocio.TRANSFORM_DIR_FORWARD
+        )
+        self.cs_srgb_curve.setTransform(transform, ocio.COLORSPACE_DIR_FROM_REFERENCE)
+        self.add(self.cs_srgb_curve)
+
         return
 
     def cook_named_transform(self):
 
-        self.nt_srgb = NamedTransform(
-            name="sRGB - curve",
+        self.nt_srgb_curve = NamedTransform(
+            name="sRGB - curve (nt)",
             description="Encoding the sRGB EOTF only.",
             encoding=Encodings.sdr_video,
             family=Families.display,
@@ -189,8 +217,8 @@ class Versatile(makeconfig.BaseConfig):
                     ocio.NEGATIVE_LINEAR,
                     ocio.TRANSFORM_DIR_INVERSE
         )
-        self.nt_srgb.setTransform(transform, ocio.TRANSFORM_DIR_FORWARD)
-        self.add(self.nt_srgb)
+        self.nt_srgb_curve.setTransform(transform, ocio.TRANSFORM_DIR_FORWARD)
+        self.add(self.nt_srgb_curve)
 
         return
 
