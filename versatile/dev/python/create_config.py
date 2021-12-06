@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 # register parent dir as package source
-mck_dir = Path(__file__).parent
+mck_dir = Path(__file__).parent.parent.parent.parent / "makeconfig"
 sys.path.append(str(mck_dir))
 
 # configure env before staring makeconfig

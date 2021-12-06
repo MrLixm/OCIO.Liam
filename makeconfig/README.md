@@ -28,33 +28,33 @@ config.write_to_disk("./config.ocio")
 
 # modules
 
-## [./launcher.py](./launcher.py)
+## [./makeconfig/launcher.py](./makeconfig/launcher.py)
 
 logging system, executed first when import the package.
 
-## [./setup.py](./setup.py)
+## [./makeconfig/setup.py](./makeconfig/setup.py)
 
 Configuration of the package (name config was not appropriate here :)
 Hold variables that can change some behaviours.
 
-## [./utils.py](./utils.py)
+## [./makeconfig/utils.py](./makeconfig/utils.py)
 
 Mostly Numpy helpers to perform some maths/formatting on arrays.
 
 Also a matrix helper to generate matrix from colorspace conversions.
 
-## [./config/ingredients.py](./config/ingredients.py)
+## [./makeconfig/config/ingredients.py](./makeconfig/config/ingredients.py)
 
 Custom classes representing OCIO config components.
 To write the config in an even more pythonic way.
 
-## [./config/recipes.py](./config/recipes.py)
+## [./makeconfig/config/recipes.py](./makeconfig/config/recipes.py)
 
 BaseClass for the OCIO config python object.
 
 # Utilisation
 
-Import and subclass `BaseConfig` from [./config/recipes.py](./config/recipes.py)
+Import and subclass `BaseConfig` from [./makeconfig/config/recipes.py](./makeconfig/config/recipes.py)
 
 ```python
 import makeconfig
@@ -94,7 +94,7 @@ And that is all you have to fill to build the config.
 
 ## Ingredients
 
-To build the config your going to use the classes defined in [./config/ingredients.py](./config/ingredients.py) . You can safely import all :
+To build the config your going to use the classes defined in [./makeconfig/config/ingredients.py](./makeconfig/config/ingredients.py) . You can safely import all :
 
 ```python
 from makeconfig.config.ingredients import *
@@ -131,5 +131,5 @@ The first four ones are just some helpers while the rest all subclass `BaseOCIOC
 
 *(We will get back on `DiskDependency` later)*
 
-[comment]: # "TODO: finish wip"
+[comment]: # (TODO: finish wip)
 
