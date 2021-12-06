@@ -2,9 +2,19 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="94e4cddc-1d84-4063-8bab-ff52f4b09042" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/helpers/OCIO_builtin_transforms.json" beforeDir="false" afterPath="$PROJECT_DIR$/dev/OCIO_builtin_transforms.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/versatile/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/versatile/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/OCIO.Liam.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/OCIO.Liam.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/versatile/dev/python/create_config.py" beforeDir="false" afterPath="$PROJECT_DIR$/versatile/dev/python/create_config.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/versatile/dev/python/makeconfig/README.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/versatile/dev/python/makeconfig/__init__.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/versatile/dev/python/makeconfig/config/__init__.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/versatile/dev/python/makeconfig/config/ingredients.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/versatile/dev/python/makeconfig/config/recipes.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/versatile/dev/python/makeconfig/launcher.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/versatile/dev/python/makeconfig/setup.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/versatile/dev/python/makeconfig/tests/test_utils.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/versatile/dev/python/makeconfig/utils.py" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -40,17 +50,19 @@
     <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/versatile/dev/test/images" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/makeconfig" />
     <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyIntegratedToolsModulesConfigurable" />
   </component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="G:\personal\code\OCIO\workspace\projects\OCIO.Liam\makeconfig" />
       <recent name="G:\personal\code\OCIO\workspace\projects\OCIO.Liam\versatile\dev\test\images" />
       <recent name="G:\personal\code\OCIO\workspace\projects\OCIO.Liam\versatile\dev\test\images\input\config_original" />
       <recent name="G:\personal\code\OCIO\workspace\projects\OCIO.Liam\versatile\dev\test\images\input\config02" />
       <recent name="G:\personal\code\OCIO\workspace\projects\OCIO.Liam\versatile\dev\python" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="G:\personal\code\OCIO\workspace\projects\OCIO.Liam\makeconfig" />
       <recent name="G:\personal\code\OCIO\workspace\projects\OCIO.Liam\versatile\dev\test\images\input\img" />
       <recent name="G:\personal\code\OCIO\workspace\projects\OCIO.Liam\versatile\dev\python\makeconfig" />
       <recent name="G:\personal\code\OCIO\workspace\projects\OCIO.Liam\versatile\dev\python\makeconfig\config" />
@@ -188,6 +200,7 @@
       <workItem from="1638216325420" duration="1353000" />
       <workItem from="1638217726810" duration="38504000" />
       <workItem from="1638450136471" duration="70752000" />
+      <workItem from="1638788218257" duration="2138000" />
     </task>
     <servers />
   </component>
@@ -208,7 +221,7 @@
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/OCIO_Liam$test_utils.coverage" NAME="test_utils Coverage Results" MODIFIED="1638471721577" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/versatile/dev/python/makeconfig/tests" />
-    <SUITE FILE_PATH="coverage/OCIO_Liam$create_config.coverage" NAME="create_config Coverage Results" MODIFIED="1638704886458" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/versatile/dev/python" />
+    <SUITE FILE_PATH="coverage/OCIO_Liam$create_config.coverage" NAME="create_config Coverage Results" MODIFIED="1638811022434" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/versatile/dev/python" />
     <SUITE FILE_PATH="coverage/OCIO_Liam$testB.coverage" NAME="testB Coverage Results" MODIFIED="1638641236190" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/versatile/dev/test/images" />
     <SUITE FILE_PATH="coverage/OCIO_Liam$temp.coverage" NAME="temp Coverage Results" MODIFIED="1638304751750" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/versatile/dev/test" />
     <SUITE FILE_PATH="coverage/OCIO_Liam$test_simple_io.coverage" NAME="testA Coverage Results" MODIFIED="1638642445031" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/versatile/dev/test/images" />
